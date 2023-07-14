@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".Login"
+    android:orientation="vertical"
+    android:background="#fff"
+    android:id="@+id/parentLayout"
+    android:textColor = "?android:textColorPrimary"
+    >
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <com.google.android.material.progressindicator.LinearProgressIndicator
+            android:id="@+id/progressBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:indeterminate="true"
+            android:layout_alignParentTop="true"
+            android:layout_marginTop="2dp"
+            android:visibility="gone"
+            />
+        <ImageView
+            android:id="@+id/logo"
+            android:layout_width="260dp"
+            android:layout_height="200dp"
+            android:layout_marginTop="10dp"
+            android:src="@drawable/loginimage"
+            android:scaleType="centerCrop"
+            android:adjustViewBounds="true"
+            android:transitionName="imageTransition"
+            android:layout_centerHorizontal="true"
+            />
+    </RelativeLayout>
+    <TextView
+        android:id="@+id/text1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="15dp"
+        android:layout_marginTop="12dp"
+        android:fontFamily="@font/oswald"
+        android:text="Welcome to Chit Chat"
+        android:textAlignment="viewStart"
+        android:textColor="#B7101010"
+        android:textSize="30sp"
+        android:textStyle="bold"
+        android:transitionName="textTransition1" />
+
+    <TextView
+        android:id="@+id/text2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/oswald"
+        android:layout_marginStart="15dp"
+        android:text="Let\'s get you logged in"
+        android:textAlignment="viewStart"
+        android:textColor="#B7101010"
+        android:textSize="34sp"
+        android:textStyle="bold"
+        android:transitionName="textTransition2"/>
+
+    <TextView
+        android:id="@+id/text3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="15dp"
+        android:fontFamily="@font/poppins"
+        android:text="Sign in to continue"
+        android:textAlignment="viewStart"
+        android:textColor="#9A101010"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:transitionName="textTransition2" />
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="15dp"
+            android:layout_marginBottom="20dp"
+            android:orientation="vertical">
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="15dp"
+                android:layout_marginEnd="15dp"
+                android:id ="@+id/email"
+                android:hint="Email"
+                app:boxCornerRadiusBottomEnd="20dp"
+                app:boxBackgroundMode="filled"
+                app:boxCornerRadiusTopStart="20dp"
+                app:boxStrokeColor="@color/mtrl_textinput_default_box_stroke_color"
+                app:boxStrokeWidth="1dp"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textEmailAddress"
+                    android:id="@+id/emailText"
+                    android:drawableStart="@drawable/email"
+                    android:background="@color/white"
+                    android:drawablePadding="15dp"
+                    android:transitionName="usernameTransition"/>
+            </com.google.android.material.textfield.TextInputLayout>
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:layout_marginStart="15dp"
+                android:layout_marginEnd="15dp"
+                android:id ="@+id/password"
+                android:hint="Password"
+                app:passwordToggleEnabled="true"
+                app:boxCornerRadiusBottomEnd="20dp"
+                app:boxBackgroundMode="filled"
+                app:boxCornerRadiusTopStart="20dp"
+                app:boxStrokeColor="@color/mtrl_textinput_default_box_stroke_color"
+                app:boxStrokeWidth="1dp"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textPassword"
+                    android:drawableStart="@drawable/password"
+                    android:background="@color/white"
+                    android:id="@+id/passwordText"
+                    android:drawablePadding="15dp"
+                    android:transitionName="passwordTransition" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <Button
+                android:id="@+id/forgetPass"
+                android:layout_width="200dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="right"
+                android:layout_margin="5dp"
+                android:background="#00000000"
+                android:elevation="0dp"
+                android:fontFamily="@font/poppins"
+                android:text="Forgot Password?"
+                android:textColor="@color/black"
+                android:textSize="13.5sp"
+                android:textStyle="bold"
+                android:transitionName="passwordTransition"/>
+
+            <Button
+                android:id="@+id/signIn"
+                android:layout_width="match_parent"
+                android:layout_height="58dp"
+                android:layout_marginTop="5dp"
+                android:layout_marginBottom="5dp"
+                android:layout_marginStart="15dp"
+                android:layout_marginEnd="15dp"
+                android:background="@drawable/custom_button_back"
+                android:text="LOG IN"
+                android:textColor="#fff"
+                android:textSize="16sp"
+                android:transitionName="signinTransition"
+               />
+            <Button
+                android:id="@+id/signUp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="right"
+                android:layout_margin="1dp"
+                android:background="#00000000"
+                android:elevation="0dp"
+                android:fontFamily="@font/poppins"
+                android:text="Don't have an account? Sign up"
+                android:textColor="@color/black"
+                android:textStyle="bold"
+                android:textSize="13.5sp"
+
+                android:transitionName="signupTransition"/>
+        </LinearLayout>
+    </ScrollView>
+
+</LinearLayout>

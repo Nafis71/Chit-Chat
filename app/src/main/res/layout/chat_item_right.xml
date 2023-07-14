@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:padding="8dp">
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/right_chat_view"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_marginStart="80dp"
+        android:layout_marginTop="5dp"
+        android:layout_marginBottom="5dp">
+
+        <RelativeLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@android:color/white"
+            android:orientation="vertical">
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id = "@+id/profilePicture"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_marginTop="10dp"
+                android:layout_marginBottom="10dp"
+                android:layout_marginEnd="10dp"
+                android:layout_marginStart="10dp"
+                app:layout_constraintDimensionRatio="1:1"
+                app:shapeAppearanceOverlay="@style/circular"
+                android:layout_alignParentTop="true"
+                android:visibility="gone"
+                >
+            </com.google.android.material.imageview.ShapeableImageView>
+
+            <TextView
+                android:id="@+id/show_message"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:layout_marginEnd="5dp"
+                android:layout_marginStart="5dp"
+                android:layout_marginBottom="10dp"
+                android:padding="5dp"
+                android:textColor="@android:color/black" />
+
+
+
+        </RelativeLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+</RelativeLayout>
