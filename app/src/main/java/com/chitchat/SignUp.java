@@ -4,6 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
@@ -39,7 +40,15 @@ import com.google.firebase.storage.UploadTask;
 
 import java.io.InputStream;
 import java.net.URI;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
+import java.util.Base64;
 import java.util.HashMap;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 
 public class SignUp extends AppCompatActivity {
     TextInputLayout fullName,email,password,confirmPassword;
@@ -53,6 +62,7 @@ public class SignUp extends AppCompatActivity {
     LottieAnimationView registrationSuccessful,emailVerification;
     Bitmap bitmap;
     String photoUrl;
+    byte[] publicKey,privateKey;
     FirebaseUser user;
     FirebaseAuth auth;
     FirebaseDatabase database = FirebaseDatabase.getInstance("https://chit-chat-118c1-default-rtdb.asia-southeast1.firebasedatabase.app/");
@@ -234,6 +244,13 @@ public class SignUp extends AppCompatActivity {
                     public void run() {
                         if(task.isSuccessful())
                         {
+                            try {
+                                generateRSA();
+                            } catch (NoSuchPaddingException | IllegalBlockSizeException |
+                                     NoSuchAlgorithmException | BadPaddingException |
+                                     InvalidKeySpecException | InvalidKeyException e) {
+                                throw new RuntimeException(e);
+                            }
                             auth.signOut();
                             progressBar.setVisibility(View.GONE);
                             Intent intent = new Intent(SignUp.this, Login.class);
@@ -241,7 +258,7 @@ public class SignUp extends AppCompatActivity {
                             finish();
                         }
                     }
-                },3500);
+                },4000);
             }
         }).addOnFailureListener(new OnFailureListener() {
             @Override
@@ -249,6 +266,32 @@ public class SignUp extends AppCompatActivity {
                 Snackbar.make(parentLayout,"Connection Error",Snackbar.LENGTH_LONG).show();
             }
         });
+    }
+    private void generateRSA() throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeySpecException, InvalidKeyException {
+        SharedPreferences preferences = getSharedPreferences("RSA",MODE_PRIVATE);
+        String check = preferences.getString("privateKey","null");
+        if(check.equals("null"))
+        {
+            RSA rsa = new RSA();
+            rsa.init(2048);
+            publicKey = rsa.getPublicKey();
+            privateKey = rsa.getPrivateKey();
+            SharedPreferences.Editor editor = preferences.edit();
+            editor.putString("privateKey", Base64.getEncoder().encodeToString(privateKey));
+            editor.apply();
+            DatabaseReference reference = database.getReference("users");
+            reference.child(user.getUid()).child("publicKey").setValue(Base64.getEncoder().encodeToString(publicKey));
+            AdvanceEncryptionStandardSetup();
+        }
+    }
+    public void AdvanceEncryptionStandardSetup() throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeySpecException, InvalidKeyException {
+        SharedPreferences preferences = getSharedPreferences("secretKey",MODE_PRIVATE);
+            AES aes = new AES();
+            aes.init(256);
+            byte[] secretKey = aes.getSecretKey();
+            SharedPreferences.Editor editor = preferences.edit();
+            editor.putString("secretKey",Base64.getEncoder().encodeToString(secretKey));
+            editor.apply();
     }
     private void stateListener(){
         fullNameText.addTextChangedListener(new TextWatcher() {

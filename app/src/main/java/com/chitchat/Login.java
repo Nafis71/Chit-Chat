@@ -102,7 +102,7 @@ public class Login extends AppCompatActivity {
                                 Intent intent = new Intent(Login.this,ChatList.class);
                                 intent.putExtra("userId",user.getUid());
                                 startActivity(intent);
-                                finishAndRemoveTask();
+                                finish();
                             }
                             else {
                                 progressBar.setVisibility(View.GONE);

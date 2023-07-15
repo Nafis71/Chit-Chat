@@ -5,8 +5,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -14,6 +14,8 @@ import android.widget.TextView;
 
 import com.airbnb.lottie.LottieAnimationView;
 import com.bumptech.glide.Glide;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
@@ -22,15 +24,13 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
-import java.io.UnsupportedEncodingException;
-import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.time.LocalDate;
+import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
-import java.util.Date;
+import java.util.Base64;
 import java.util.HashMap;
-import java.util.UUID;
+import java.util.Objects;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -41,18 +41,24 @@ import javax.crypto.spec.SecretKeySpec;
 public class ChatRoom extends AppCompatActivity {
     EditText textBox;
     ImageView sendButton,profilePicture;
-    TextView userName,noConversationText;
+    TextView userName,noConversationText,onlineStatus,seenStatus;
     LottieAnimationView noConversationAnimation;
     RecyclerView recyclerView;
     ArrayList<messageModel> list = new ArrayList<>();
     messageAdapter adapter;
     FirebaseDatabase database = FirebaseDatabase.getInstance("https://chit-chat-118c1-default-rtdb.asia-southeast1.firebasedatabase.app/");
+
+    DatabaseReference reference = database.getReference("chats");
     FirebaseAuth auth = FirebaseAuth.getInstance();
+    ValueEventListener listener;
     FirebaseUser senderId = auth.getCurrentUser();
     String receiverId,receiverName,receiverPhoto;
-    byte [] encryptionKey = {9,115,51,86,105,4,-31,-23,-68,88,17,20,3,-105,119,-53};
+    byte[] publicKey,privateKey,encryptionKey,decryptionKey,secretKey;
+//    byte [] encryptionKey = {9,115,51,86,105,4,-31,-23,-68,88,17,20,3,-105,119,-53};
     Cipher cipher, decipher;
     SecretKeySpec secretKeySpec;
+    RSA rsa = new RSA();
+    AES aes = new AES();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,19 +67,45 @@ public class ChatRoom extends AppCompatActivity {
         receiverId = getIntent().getStringExtra("userId");
         receiverName = getIntent().getStringExtra("fullName");
         receiverPhoto = getIntent().getStringExtra("photoUrl");
+        loadReceiverPublicKey();
         viewBinding();
-        encryptionSetup();
+        getRSAKeys();
+        try {
+            loadSecretKey();
+        } catch (NoSuchPaddingException | IllegalBlockSizeException | NoSuchAlgorithmException |
+                 BadPaddingException | InvalidKeySpecException | InvalidKeyException e) {
+            throw new RuntimeException(e);
+        }
         Thread thread = new Thread(new Runnable() {
             @Override
             public void run() {
-                readMessages();
+                  readMessages();
             }
         });
         thread.start();
         sendButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                sendMessage();
+                try {
+                    sendMessage();
+                } catch (NoSuchPaddingException | IllegalBlockSizeException |
+                         NoSuchAlgorithmException | BadPaddingException | InvalidKeySpecException |
+                         InvalidKeyException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
+    }
+    public void loadReceiverPublicKey(){
+        DatabaseReference reference = database.getReference("users");
+        reference.child(receiverId).child("publicKey").get().addOnCompleteListener(new OnCompleteListener<DataSnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<DataSnapshot> task) {
+                if(task.isSuccessful())
+                {
+                    DataSnapshot  snapshot = task.getResult();
+                    publicKey = Base64.getDecoder().decode(String.valueOf(snapshot.getValue()));
+                }
             }
         });
     }
@@ -83,27 +115,28 @@ public class ChatRoom extends AppCompatActivity {
         recyclerView = findViewById(R.id.recyclerView);
         profilePicture = findViewById(R.id.profilePicture);
         userName = findViewById(R.id.userName);
+        onlineStatus = findViewById(R.id.onlineStatus);
         noConversationAnimation = findViewById(R.id.noConversationAnimation);
         noConversationText = findViewById(R.id.noConversationText);
+        seenStatus = findViewById(R.id.seenStatus);
         Glide.with(this).load(receiverPhoto).into(profilePicture);
         userName.setText(receiverName);
     }
-    public void encryptionSetup(){
-        try {
-            cipher = Cipher.getInstance("AES");
-            decipher = Cipher.getInstance("AES");
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
-            throw new RuntimeException(e);
-        }
-        secretKeySpec = new SecretKeySpec(encryptionKey,"AES");
+    public void loadSecretKey() throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeySpecException, InvalidKeyException {
+        SharedPreferences preferences = getSharedPreferences("secretKey",MODE_PRIVATE);
+        String storedSecretKey = preferences.getString("secretKey","null");
+        secretKey = Base64.getDecoder().decode(storedSecretKey);
+    }
+    public void getRSAKeys(){
+        SharedPreferences preferences = getSharedPreferences("RSA",MODE_PRIVATE);
+        privateKey = Base64.getDecoder().decode(preferences.getString("privateKey",""));
     }
     public void readMessages(){
         recyclerView.setHasFixedSize(true);
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
         linearLayoutManager.setStackFromEnd(true);
         recyclerView.setLayoutManager(linearLayoutManager);
-        DatabaseReference reference = database.getReference("chats");
-        reference.addValueEventListener(new ValueEventListener() {
+        listener = reference.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 list.clear();
@@ -111,9 +144,15 @@ public class ChatRoom extends AppCompatActivity {
                 for(DataSnapshot snap : snapshot.getChildren())
                 {
                     messageModel model = snap.getValue(messageModel.class);
-                    if(model.getReceiverId().equals(senderId.getUid()) && model.getSenderId().equals(receiverId) ||
-                        model.getReceiverId().equals(receiverId) && model.getSenderId().equals(senderId.getUid())){
-                        String decryptedMessage = AESDecryption(model.getMessage());
+                    assert model != null;
+                    if(model.getReceiverId().equals(receiverId) && model.getSenderId().equals(senderId.getUid())){
+                        String decryptedMessage = null;
+                        try {
+                            decryptedMessage = aes.decryptionSender(model.getMessage(),secretKey);
+
+                        } catch (NoSuchPaddingException | NoSuchAlgorithmException e) {
+                            throw new RuntimeException(e);
+                        }
                         if(count == 0)
                         {
                             noConversationAnimation.setVisibility(View.GONE);
@@ -122,6 +161,36 @@ public class ChatRoom extends AppCompatActivity {
                         count = 1;
                         model.setMessage(decryptedMessage);
                         list.add(model);
+                        if(model.getSeenStatus().equals("seen")) {
+                            seenStatus.setVisibility(View.VISIBLE);
+                        }else{
+                            seenStatus.setVisibility(View.GONE);
+                        }
+                    }
+                    else if(model.getReceiverId().equals(senderId.getUid()) && model.getSenderId().equals(receiverId))
+                    {
+                        String decryptedMessage = null;
+                        try {
+                            decryptedMessage = aes.decryption(model.getMessage(),model.getSecretKey(),privateKey);
+
+                        } catch (NoSuchPaddingException | NoSuchAlgorithmException e) {
+                            throw new RuntimeException(e);
+                        }
+                        if(count == 0)
+                        {
+                            noConversationAnimation.setVisibility(View.GONE);
+                            noConversationText.setVisibility(View.GONE);
+                        }
+                        count = 1;
+                        model.setMessage(decryptedMessage);
+                        list.add(model);
+                        DatabaseReference seenReference = database.getReference("chats");
+                        seenReference.child(snap.getKey()).child("seenStatus").setValue("seen");
+                        if(model.getSeenStatus().equals("seen")) {
+                            seenStatus.setVisibility(View.GONE);
+                        }else{
+                            seenStatus.setVisibility(View.GONE);
+                        }
                     }
                     else {
                         noConversationAnimation.setVisibility(View.VISIBLE);
@@ -138,40 +207,53 @@ public class ChatRoom extends AppCompatActivity {
             }
         });
     }
-    private void sendMessage(){
+    private void sendMessage() throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeySpecException, InvalidKeyException {
         String message = textBox.getText().toString().trim();
-        String encryptedMessage = AESEncryption(message);
+        String encryptedMessage = aes.encryption(message,secretKey);
+        encryptionKey = rsa.encrypt(secretKey,publicKey);
         HashMap<String,String> hashMap = new HashMap<>();
-        hashMap.put("receiverId",receiverId);
         assert senderId != null;
-        hashMap.put("senderId",senderId.getUid());
-        hashMap.put("message",encryptedMessage);
+        hashMap.put("receiverId",receiverId);hashMap.put("senderId",senderId.getUid());
+        hashMap.put("message",encryptedMessage);hashMap.put("secretKey",Base64.getEncoder().encodeToString(encryptionKey));
+        hashMap.put("seenStatus","unseen");
         DatabaseReference reference = database.getReference();
         reference.child("chats").push().setValue(hashMap);
+        textBox.setText(null);
     }
-    private String AESEncryption(String message){
-        byte[] stringByte = message.getBytes();
-        byte[] encryptedByte; //The number of consecutive (non-overlapping) bytes in a byte string.
-        try{
-            cipher.init(Cipher.ENCRYPT_MODE,secretKeySpec);
-            encryptedByte = cipher.doFinal(stringByte); //DoFinal() Finishes a multiple-part encryption or decryption operation, depending on how this cipher was initialized. DoFinal(Byte[]) Encrypts or decrypts data in a single-part operation, or finishes a multiple-part operation
-        }catch (InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
-            throw  new RuntimeException(e);
-        }
-        return new String(encryptedByte, StandardCharsets.ISO_8859_1);
-    }
-    private String AESDecryption(String message){
-        byte[] encryptedByte = message.getBytes(StandardCharsets.ISO_8859_1);
-        String decryptedString;
-        byte[] decryption;
-        try {
-            decipher.init(Cipher.DECRYPT_MODE,secretKeySpec);
-            decryption = decipher.doFinal(encryptedByte);
-            decryptedString = new String(decryption);
-        } catch (InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
-            throw new RuntimeException(e);
-        }
-        return decryptedString;
+    public void onStart(){
+        super.onStart();
+        DatabaseReference reference = database.getReference("users");
+        reference.child(senderId.getUid()).child("onlineStatus").setValue(1);
+        reference.child(receiverId).child("onlineStatus").addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                String status = String.valueOf(snapshot.getValue());
+                if(Integer.parseInt(status) > 0)
+                {
+                    onlineStatus.setText("Online");
+                }
+                else
+                {
+                    onlineStatus.setText("Offline");
+                }
+            }
 
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+    }
+
+    public void onBackPressed()
+    {
+        reference.removeEventListener(listener);
+        finishAndRemoveTask();
+    }
+    @Override
+    protected void onPause() {
+        super.onPause();
+        DatabaseReference reference = database.getReference("users");
+        reference.child(senderId.getUid()).child("onlineStatus").setValue(0);
     }
 }

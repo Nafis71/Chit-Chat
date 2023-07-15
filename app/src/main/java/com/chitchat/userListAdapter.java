@@ -2,8 +2,12 @@ package com.chitchat;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.media.Image;
+import android.provider.ContactsContract;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -22,15 +26,24 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Base64;
+
+import javax.crypto.NoSuchPaddingException;
 
 public class userListAdapter extends RecyclerView.Adapter<userListAdapter.myViewHolder> {
     Context context;
     ArrayList<userListModel> model;
+    AES aes = new AES();
+    byte[] privateKey,secretKey;
+    String userId,chatKey,senderId;
+    int counter =0;
 
-    public userListAdapter(Context context, ArrayList<userListModel> model) {
+    public userListAdapter(Context context, ArrayList<userListModel> model,String userId) {
         this.context = context;
         this.model = model;
+        this.userId = userId;
     }
 
     @NonNull
@@ -42,6 +55,7 @@ public class userListAdapter extends RecyclerView.Adapter<userListAdapter.myView
 
     @Override
     public void onBindViewHolder(@NonNull userListAdapter.myViewHolder holder, int position) {
+                loadKeys();
                 userListModel dbmodel = model.get(position);
                 Glide.with(context).load(dbmodel.getPhotoUrl()).into(holder.profilePicture);
                 holder.userName.setText(dbmodel.getFullName());
@@ -70,9 +84,73 @@ public class userListAdapter extends RecyclerView.Adapter<userListAdapter.myView
                         throw error.toException();
                     }
                 });
+                DatabaseReference chatReference = database.getReference("chats");
+                chatReference.limitToLast(1).addValueEventListener(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        if(snapshot.exists())
+                        {
+                            for(DataSnapshot snap : snapshot.getChildren())
+                            {
+                                chatKey = snap.getKey();
+                                counter = 0;
+                                messageModel model = snap.getValue(messageModel.class);
+                                assert model != null;
+                                senderId = model.getSenderId();
+                                if(model.getSenderId().equals(dbmodel.getUserId()))
+                                {
+                                    String decryptedMessage = null;
+                                    try {
+                                       decryptedMessage =  aes.decryption(model.getMessage(),model.getSecretKey(),privateKey);
+                                    } catch (NoSuchPaddingException | NoSuchAlgorithmException e) {
+                                        throw new RuntimeException(e);
+                                    }
+                                    if(model.getSeenStatus().equals("unseen"))
+                                    {
+                                        holder.message.setTypeface(Typeface.DEFAULT_BOLD);
+                                        String message = decryptedMessage + " - New message";
+                                        holder.message.setText(message);
+                                    }
+                                    else{
+                                        holder.message.setTypeface(Typeface.DEFAULT);
+                                        holder.message.setText(decryptedMessage);
+                                    }
+
+                                }
+                                else if(!model.getReceiverId().equals(userId))
+                                {
+                                    String decryptedMessage = null;
+                                    try {
+                                        decryptedMessage = aes.decryptionSender(model.getMessage(),secretKey);
+                                    } catch (NoSuchPaddingException | NoSuchAlgorithmException e) {
+                                        throw new RuntimeException(e);
+                                    }
+                                    String message = "You: " +decryptedMessage;
+                                    holder.message.setText(message);
+                                }
+                                else {
+                                    holder.message.setText("No Messages");
+                                }
+                            }
+                        }else{
+                            holder.message.setText("No Messages");
+                            counter = 1;
+                        }
+                    }
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {
+                        throw error.toException();
+                    }
+                });
                 holder.card.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
+                        holder.message.setTypeface(Typeface.DEFAULT);
+                        if(counter == 0 && !senderId.equals(userId))
+                        {
+                            DatabaseReference reference = database.getReference("chats");
+                            reference.child(chatKey).child("seenStatus").setValue("seen");
+                        }
                         Intent intent = new Intent(context, ChatRoom.class);
                         intent.putExtra("userId",dbmodel.getUserId());
                         intent.putExtra("photoUrl",dbmodel.getPhotoUrl());
@@ -84,7 +162,7 @@ public class userListAdapter extends RecyclerView.Adapter<userListAdapter.myView
     }
     public static class myViewHolder extends RecyclerView.ViewHolder{
         ImageView profilePicture;
-        TextView userName,onlineStatus;
+        TextView userName,onlineStatus,message;
         CardView card;
         public myViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -92,10 +170,18 @@ public class userListAdapter extends RecyclerView.Adapter<userListAdapter.myView
             userName = itemView.findViewById(R.id.userName);
             onlineStatus = itemView.findViewById(R.id.onlineStatus);
             card = itemView.findViewById(R.id.card);
+            message = itemView.findViewById(R.id.message);
         }
     }
     @Override
     public int getItemCount() {
         return model.size();
+    }
+
+    public void loadKeys(){
+        SharedPreferences preferences = context.getSharedPreferences("RSA",Context.MODE_PRIVATE);
+        privateKey = Base64.getDecoder().decode(preferences.getString("privateKey","null"));
+        preferences = context.getSharedPreferences("secretKey",Context.MODE_PRIVATE);
+        secretKey = Base64.getDecoder().decode(preferences.getString("secretKey","null"));
     }
 }

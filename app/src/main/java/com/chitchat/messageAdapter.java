@@ -83,6 +83,7 @@ public class messageAdapter extends RecyclerView.Adapter<messageAdapter.myViewHo
     @Override
     public int getItemViewType(int position) {
         FirebaseUser fuser = FirebaseAuth.getInstance().getCurrentUser();
+        assert fuser != null;
         if(model.get(position).getSenderId().equals(fuser.getUid()))
         {
             return RIGHT_CHAT;
