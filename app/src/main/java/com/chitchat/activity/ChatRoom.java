@@ -1,4 +1,4 @@
-package com.chitchat;
+package com.chitchat.activity;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -7,6 +7,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -14,6 +15,11 @@ import android.widget.TextView;
 
 import com.airbnb.lottie.LottieAnimationView;
 import com.bumptech.glide.Glide;
+import com.chitchat.R;
+import com.chitchat.database.messageAdapter;
+import com.chitchat.database.messageModel;
+import com.chitchat.encryption.AES;
+import com.chitchat.encryption.RSA;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
@@ -30,13 +36,10 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
-import java.util.Objects;
 
 import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
-import javax.crypto.spec.SecretKeySpec;
 
 public class ChatRoom extends AppCompatActivity {
     EditText textBox;
@@ -55,8 +58,6 @@ public class ChatRoom extends AppCompatActivity {
     String receiverId,receiverName,receiverPhoto;
     byte[] publicKey,privateKey,encryptionKey,decryptionKey,secretKey;
 //    byte [] encryptionKey = {9,115,51,86,105,4,-31,-23,-68,88,17,20,3,-105,119,-53};
-    Cipher cipher, decipher;
-    SecretKeySpec secretKeySpec;
     RSA rsa = new RSA();
     AES aes = new AES();
 
@@ -132,6 +133,7 @@ public class ChatRoom extends AppCompatActivity {
         privateKey = Base64.getDecoder().decode(preferences.getString("privateKey",""));
     }
     public void readMessages(){
+        Log.w("SecretKey",Base64.getEncoder().encodeToString(secretKey));
         recyclerView.setHasFixedSize(true);
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
         linearLayoutManager.setStackFromEnd(true);

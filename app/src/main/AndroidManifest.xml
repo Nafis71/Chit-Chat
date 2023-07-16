@@ -14,19 +14,19 @@
         android:theme="@style/Theme.ChitChat"
         tools:targetApi="31">
         <activity
-            android:name=".ChatRoom"
+            android:name=".activity.ChatRoom"
             android:exported="false" />
         <activity
-            android:name=".ChatList"
+            android:name=".activity.ChatList"
             android:exported="false" />
         <activity
-            android:name=".SignUp"
+            android:name=".activity.SignUp"
             android:exported="false" />
         <activity
-            android:name=".Login"
+            android:name=".activity.Login"
             android:exported="false" />
         <activity
-            android:name=".MainActivity"
+            android:name=".activity.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

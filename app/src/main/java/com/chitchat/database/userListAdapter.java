@@ -1,12 +1,10 @@
-package com.chitchat;
+package com.chitchat.database;
 
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
-import android.media.Image;
-import android.provider.ContactsContract;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -15,11 +13,13 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.chitchat.encryption.AES;
+import com.chitchat.activity.ChatRoom;
+import com.chitchat.R;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -103,21 +103,27 @@ public class userListAdapter extends RecyclerView.Adapter<userListAdapter.myView
                                     try {
                                        decryptedMessage =  aes.decryption(model.getMessage(),model.getSecretKey(),privateKey);
                                     } catch (NoSuchPaddingException | NoSuchAlgorithmException e) {
-                                        throw new RuntimeException(e);
+                                        holder.message.setText("No messages");
                                     }
-                                    if(model.getSeenStatus().equals("unseen"))
+                                    if(decryptedMessage != null)
                                     {
-                                        holder.message.setTypeface(Typeface.DEFAULT_BOLD);
-                                        String message = decryptedMessage + " - New message";
-                                        holder.message.setText(message);
-                                    }
-                                    else{
-                                        holder.message.setTypeface(Typeface.DEFAULT);
-                                        holder.message.setText(decryptedMessage);
+                                        if(model.getSeenStatus().equals("unseen"))
+                                        {
+                                            holder.message.setTypeface(Typeface.DEFAULT_BOLD);
+                                            String message = decryptedMessage + " - New message";
+                                            holder.message.setText(message);
+                                        }
+                                        else{
+                                            holder.message.setTypeface(Typeface.DEFAULT);
+                                            holder.message.setText(decryptedMessage);
+                                        }
+                                    }else{
+                                        holder.message.setText("No messages");
                                     }
 
+
                                 }
-                                else if(!model.getReceiverId().equals(userId))
+                                else if(!model.getReceiverId().equals(userId) && dbmodel.getUserId().equals(model.getReceiverId()))
                                 {
                                     String decryptedMessage = null;
                                     try {
@@ -125,8 +131,14 @@ public class userListAdapter extends RecyclerView.Adapter<userListAdapter.myView
                                     } catch (NoSuchPaddingException | NoSuchAlgorithmException e) {
                                         throw new RuntimeException(e);
                                     }
-                                    String message = "You: " +decryptedMessage;
-                                    holder.message.setText(message);
+                                    if(decryptedMessage!= null)
+                                    {
+                                        String message = "You: " +decryptedMessage;
+                                        holder.message.setText(message);
+                                    }else{
+                                        holder.message.setText("No messages");
+                                    }
+
                                 }
                                 else {
                                     holder.message.setText("No Messages");
@@ -181,6 +193,7 @@ public class userListAdapter extends RecyclerView.Adapter<userListAdapter.myView
     public void loadKeys(){
         SharedPreferences preferences = context.getSharedPreferences("RSA",Context.MODE_PRIVATE);
         privateKey = Base64.getDecoder().decode(preferences.getString("privateKey","null"));
+        Log.w("PrivateKEy",Base64.getEncoder().encodeToString(privateKey));
         preferences = context.getSharedPreferences("secretKey",Context.MODE_PRIVATE);
         secretKey = Base64.getDecoder().decode(preferences.getString("secretKey","null"));
     }

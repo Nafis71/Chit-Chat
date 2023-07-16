@@ -1,33 +1,31 @@
-package com.chitchat;
+package com.chitchat.activity;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
+import androidx.viewpager2.widget.ViewPager2;
 
-import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.os.Handler;
 import android.util.Log;
+import android.view.View;
 import android.widget.ImageView;
-import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
+import com.chitchat.R;
+import com.chitchat.database.pageAdapter;
+import com.google.android.material.tabs.TabLayout;
+import com.google.android.material.tabs.TabLayoutMediator;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
-import java.util.ArrayList;
-import java.util.Base64;
-
 public class ChatList extends AppCompatActivity {
     ImageView profilePicture;
-    RecyclerView recyclerView;
-    ArrayList<userListModel> list;
-    userListAdapter adapter;
     String userId,photoUrl,fullName;
+    ViewPager2 vPager;
+    TabLayout tabs;
+    private final  String [] titles = new String[]{"Chats","Requests","Add Friends"};
     FirebaseDatabase database = FirebaseDatabase.getInstance("https://chit-chat-118c1-default-rtdb.asia-southeast1.firebasedatabase.app/");
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,44 +40,21 @@ public class ChatList extends AppCompatActivity {
             }
         });
         thread.start();
-        recyclerView = findViewById(R.id.recyclerView);
-        recyclerView.setHasFixedSize(true);
-        recyclerView.setLayoutManager(new LinearLayoutManager(ChatList.this));
-        list = new ArrayList<>();
-        adapter = new userListAdapter(this,list,userId);
-        recyclerView.setAdapter(adapter);
-        recyclerView.smoothScrollToPosition(adapter.getItemCount());
-        DatabaseReference reference = database.getReference("users");
-        reference.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                list.clear();
-                    for(DataSnapshot snap : snapshot.getChildren())
-                    {
-                        userListModel model = snap.getValue(userListModel.class);
-                        if(!model.getUserId().equals(userId))
-                        {
-                            list.add(model);
-                        }
-                    }
-                adapter.notifyDataSetChanged();
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-                throw error.toException();
-            }
-        });
-
+        pageAdapter adapter = new pageAdapter(ChatList.this,userId);
+        vPager.setAdapter(adapter);
+        new TabLayoutMediator(tabs,vPager,((tab, position) ->tab.setText(titles[position]))).attach();
+        vPager.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
     }
     public void viewBinding()
     {
         profilePicture = findViewById(R.id.profilePicture);
+        vPager = findViewById(R.id.vPager);
+        tabs =  findViewById(R.id.tabs);
     }
     public void loadProfileData(){
-        DatabaseReference USerreference = database.getReference("users");
+        DatabaseReference userReference = database.getReference("users");
         Log.w("userId",userId);
-        USerreference.child(userId).addListenerForSingleValueEvent(new ValueEventListener() {
+        userReference.child(userId).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 if(snapshot.exists())

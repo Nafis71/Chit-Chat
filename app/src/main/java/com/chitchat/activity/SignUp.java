@@ -1,4 +1,4 @@
-package com.chitchat;
+package com.chitchat.activity;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -18,8 +18,10 @@ import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import com.airbnb.lottie.Lottie;
 import com.airbnb.lottie.LottieAnimationView;
+import com.chitchat.R;
+import com.chitchat.encryption.AES;
+import com.chitchat.encryption.RSA;
 import com.github.dhaval2404.imagepicker.ImagePicker;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
@@ -39,15 +41,10 @@ import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 
 import java.io.InputStream;
-import java.net.URI;
-import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.security.spec.InvalidKeySpecException;
 import java.util.Base64;
 import java.util.HashMap;
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 
 public class SignUp extends AppCompatActivity {
@@ -65,6 +62,9 @@ public class SignUp extends AppCompatActivity {
     byte[] publicKey,privateKey;
     FirebaseUser user;
     FirebaseAuth auth;
+    private static final byte[] secretKey ={-65, 112, -102, -101, 88, 78, -119, 66, -46, -108, -92, 56, 64, 54, -75, -43, -23, -22, 43, 101, 16, 113, -31, 61, -92, 37, -77, 78, 81, -100, 19, 8};
+    //256bit
+
     FirebaseDatabase database = FirebaseDatabase.getInstance("https://chit-chat-118c1-default-rtdb.asia-southeast1.firebasedatabase.app/");
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -244,13 +244,7 @@ public class SignUp extends AppCompatActivity {
                     public void run() {
                         if(task.isSuccessful())
                         {
-                            try {
-                                generateRSA();
-                            } catch (NoSuchPaddingException | IllegalBlockSizeException |
-                                     NoSuchAlgorithmException | BadPaddingException |
-                                     InvalidKeySpecException | InvalidKeyException e) {
-                                throw new RuntimeException(e);
-                            }
+                            AdvanceEncryptionStandardSetup();
                             auth.signOut();
                             progressBar.setVisibility(View.GONE);
                             Intent intent = new Intent(SignUp.this, Login.class);
@@ -267,31 +261,34 @@ public class SignUp extends AppCompatActivity {
             }
         });
     }
-    private void generateRSA() throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeySpecException, InvalidKeyException {
-        SharedPreferences preferences = getSharedPreferences("RSA",MODE_PRIVATE);
-        String check = preferences.getString("privateKey","null");
-        if(check.equals("null"))
-        {
-            RSA rsa = new RSA();
-            rsa.init(2048);
-            publicKey = rsa.getPublicKey();
-            privateKey = rsa.getPrivateKey();
-            SharedPreferences.Editor editor = preferences.edit();
-            editor.putString("privateKey", Base64.getEncoder().encodeToString(privateKey));
-            editor.apply();
-            DatabaseReference reference = database.getReference("users");
-            reference.child(user.getUid()).child("publicKey").setValue(Base64.getEncoder().encodeToString(publicKey));
-            AdvanceEncryptionStandardSetup();
-        }
-    }
-    public void AdvanceEncryptionStandardSetup() throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeySpecException, InvalidKeyException {
+
+
+    public void AdvanceEncryptionStandardSetup() {
         SharedPreferences preferences = getSharedPreferences("secretKey",MODE_PRIVATE);
-            AES aes = new AES();
-            aes.init(256);
-            byte[] secretKey = aes.getSecretKey();
-            SharedPreferences.Editor editor = preferences.edit();
-            editor.putString("secretKey",Base64.getEncoder().encodeToString(secretKey));
-            editor.apply();
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putString("secretKey", Base64.getEncoder().encodeToString(secretKey));
+        editor.apply();
+        generateRSA();
+    }
+    private void generateRSA(){
+        AES aes = new AES();
+        RSA rsa = new RSA();
+        rsa.init(2048);
+        publicKey = rsa.getPublicKey();
+        privateKey = rsa.getPrivateKey();
+        SharedPreferences preferences = getSharedPreferences("RSA",MODE_PRIVATE);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putString("privateKey", Base64.getEncoder().encodeToString(privateKey));
+        editor.apply();
+        byte[] encryptedPrivateKey = null;
+        try {
+            encryptedPrivateKey = Base64.getDecoder().decode(aes.encryptionRSA(Base64.getEncoder().encodeToString(privateKey),secretKey));
+        } catch (NoSuchPaddingException | NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+        DatabaseReference reference = database.getReference("users");
+        reference.child(user.getUid()).child("publicKey").setValue(Base64.getEncoder().encodeToString(publicKey));
+        reference.child(user.getUid()).child("privateKey").setValue(Base64.getEncoder().encodeToString(encryptedPrivateKey));
     }
     private void stateListener(){
         fullNameText.addTextChangedListener(new TextWatcher() {

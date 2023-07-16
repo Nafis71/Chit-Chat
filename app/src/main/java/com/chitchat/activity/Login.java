@@ -1,9 +1,10 @@
-package com.chitchat;
+package com.chitchat.activity;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.Editable;
@@ -13,6 +14,8 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
 
+import com.chitchat.R;
+import com.chitchat.encryption.AES;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.Task;
@@ -23,8 +26,20 @@ import com.google.android.material.textfield.TextInputLayout;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
+import java.util.Base64;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 
 public class Login extends AppCompatActivity {
     Button signUp,signIn;
@@ -32,8 +47,11 @@ public class Login extends AppCompatActivity {
     TextInputEditText emailText, passwordText;
     LinearProgressIndicator progressBar;
     LinearLayout parentLayout;
+    byte[] publicKey,privateKey;
     FirebaseAuth auth = FirebaseAuth.getInstance();
     FirebaseUser user;
+    private static final byte[] secretKey ={-65, 112, -102, -101, 88, 78, -119, 66, -46, -108, -92, 56, 64, 54, -75, -43, -23, -22, 43, 101, 16, 113, -31, 61, -92, 37, -77, 78, 81, -100, 19, 8}; //256bit
+
     FirebaseDatabase database = FirebaseDatabase.getInstance("https://chit-chat-118c1-default-rtdb.asia-southeast1.firebasedatabase.app/");
 
     public void onStart() {
@@ -98,6 +116,14 @@ public class Login extends AppCompatActivity {
                         public void run() {
                             if(user.isEmailVerified())
                             {
+
+                                try {
+                                    AdvanceEncryptionStandardSetup();
+                                } catch (NoSuchPaddingException | IllegalBlockSizeException |
+                                         NoSuchAlgorithmException | BadPaddingException |
+                                         InvalidKeySpecException | InvalidKeyException e) {
+                                    throw new RuntimeException(e);
+                                }
                                 progressBar.setVisibility(View.GONE);
                                 Intent intent = new Intent(Login.this,ChatList.class);
                                 intent.putExtra("userId",user.getUid());
@@ -132,6 +158,44 @@ public class Login extends AppCompatActivity {
             }
         });
 
+    }
+    public void AdvanceEncryptionStandardSetup() throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeySpecException, InvalidKeyException {
+        SharedPreferences preferences = getSharedPreferences("secretKey",MODE_PRIVATE);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putString("secretKey",Base64.getEncoder().encodeToString(secretKey));
+        editor.apply();
+        loadRSA();
+    }
+    private void loadRSA() {
+        DatabaseReference reference = database.getReference("users");
+        reference.child(user.getUid()).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if(snapshot.exists())
+                {
+                    SharedPreferences preferences =getSharedPreferences("RSA",MODE_PRIVATE);
+                    SharedPreferences.Editor editor = preferences.edit();
+                    String encryptedPrivateKey = String.valueOf(snapshot.child("privateKey").getValue());
+                    AES aes = new AES();
+                    String decryptedPrivateKey = null;
+                    try {
+                        decryptedPrivateKey = aes.decryptionRSA(encryptedPrivateKey,secretKey);
+
+                    } catch (NoSuchPaddingException | NoSuchAlgorithmException e) {
+                        throw new RuntimeException(e);
+                    }
+                    editor.putString("privateKey",decryptedPrivateKey);
+                    Log.w("PrivateKEy",decryptedPrivateKey);
+                    editor.putString("publicKey",String.valueOf(snapshot.child("publicKey").getValue()));
+                    editor.apply();
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                throw  error.toException();
+            }
+        });
     }
     public void stateListener(){
         emailText.addTextChangedListener(new TextWatcher() {

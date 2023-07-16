@@ -1,4 +1,4 @@
-package com.chitchat;
+package com.chitchat.encryption;
 
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;

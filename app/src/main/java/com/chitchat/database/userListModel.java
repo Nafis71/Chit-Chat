@@ -1,4 +1,4 @@
-package com.chitchat;
+package com.chitchat.database;
 
 public class userListModel {
     String fullName,userId,photoUrl;

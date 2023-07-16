@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:id="@+id/parentLayout"
     android:background="#ffffff"
-    tools:context=".SignUp">
+    tools:context=".activity.SignUp">
     <com.google.android.material.progressindicator.LinearProgressIndicator
         android:id="@+id/progressBar"
         android:layout_width="match_parent"

@@ -5,7 +5,13 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#F2F3F4"
-    tools:context=".ChatList">
+    tools:context=".activity.ChatList">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none"
+        >
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -43,52 +49,49 @@
             android:layout_alignParentEnd="true"
             >
         </com.google.android.material.imageview.ShapeableImageView>
-    </RelativeLayout>
-    <RelativeLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-        <androidx.recyclerview.widget.RecyclerView
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/tabs"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:id="@+id/recyclerView"/>
-    </RelativeLayout>
-        <RelativeLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="30dp"
+            android:layout_below="@id/appName"
+            android:layout_marginTop="7dp"
+            android:layout_marginBottom="5dp"
+            android:background="#4F5FDE"
+            app:tabTextColor="#B2BABB"
+            app:tabSelectedTextColor="@color/white"
+            app:tabIndicatorColor="@color/green_shade_1"
+            app:tabIndicatorAnimationMode="elastic"
             >
-            <com.airbnb.lottie.LottieAnimationView
-                android:id="@+id/lock"
-                android:layout_width="200dp"
-                android:layout_height="200dp"
-                android:layout_centerHorizontal="true"
-                app:lottie_rawRes="@raw/lock"
-                app:lottie_autoPlay="true"
-                app:lottie_loop="true"/>
-            <TextView
-                android:id="@+id/desc"
+            <com.google.android.material.tabs.TabItem
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Your personal messages are"
-                android:textSize="14sp"
-                android:textColor="#666666"
-                android:layout_marginEnd="3dp"
-                android:layout_alignParentStart="true"
-                android:layout_below="@+id/lock"
-                android:layout_marginStart="40dp"
-                />
-            <TextView
-                android:id="@+id/desc2"
+                >
+
+            </com.google.android.material.tabs.TabItem>
+            <com.google.android.material.tabs.TabItem
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="end to end encrypted"
-                android:textSize="14sp"
-                android:textColor="@color/green_shade_1"
-                android:layout_toEndOf="@+id/desc"
-                android:layout_below="@+id/lock"
-                />
-        </RelativeLayout>
+
+                >
+
+            </com.google.android.material.tabs.TabItem>
+            <com.google.android.material.tabs.TabItem
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content">
+
+            </com.google.android.material.tabs.TabItem>
+
+        </com.google.android.material.tabs.TabLayout>
+
+    </RelativeLayout>
+        <androidx.viewpager2.widget.ViewPager2
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:id= "@+id/vPager"
+            >
+        </androidx.viewpager2.widget.ViewPager2>
     </LinearLayout>
+    </ScrollView>
 
 
 </RelativeLayout>
