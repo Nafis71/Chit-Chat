@@ -165,12 +165,9 @@ public class ChatRoom extends AppCompatActivity {
                         } catch (NoSuchPaddingException | NoSuchAlgorithmException e) {
                             throw new RuntimeException(e);
                         }
-                        if(count == 0)
-                        {
-                            noConversationAnimation.setVisibility(View.GONE);
-                            noConversationText.setVisibility(View.GONE);
-                        }
-                        count = 1;
+                        noConversationAnimation.setVisibility(View.GONE);
+                        noConversationText.setVisibility(View.GONE);
+
                         model.setMessage(decryptedMessage);
                         list.add(model);
                         if(model.getSeenStatus().equals("seen")) {
@@ -188,12 +185,9 @@ public class ChatRoom extends AppCompatActivity {
                         } catch (NoSuchPaddingException | NoSuchAlgorithmException e) {
                             throw new RuntimeException(e);
                         }
-                        if(count == 0)
-                        {
-                            noConversationAnimation.setVisibility(View.GONE);
-                            noConversationText.setVisibility(View.GONE);
-                        }
-                        count = 1;
+                        noConversationAnimation.setVisibility(View.GONE);
+                        noConversationText.setVisibility(View.GONE);
+
                         model.setMessage(decryptedMessage);
                         list.add(model);
                         DatabaseReference seenReference = database.getReference("chats");
