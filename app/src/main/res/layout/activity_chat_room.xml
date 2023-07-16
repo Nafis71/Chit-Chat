@@ -4,13 +4,15 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:id="@+id/parentLayout"
+    android:background="@drawable/backgroundimage"
     tools:context=".activity.ChatRoom">
 
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_alignParentTop="true"
-            android:background="#4F5FDE"
+            android:background="#075e54"
             android:id ="@+id/upperBar"
             >
             <TextView
@@ -79,6 +81,7 @@
         android:layout_below="@+id/noConversationAnimation"
         android:layout_centerHorizontal="true"
         android:fontFamily="@font/roboto"
+        android:textColor="@color/white"
         android:layout_marginTop="-20dp"
         android:textSize="14sp"/>
 
@@ -91,7 +94,9 @@
         android:layout_alignParentEnd="true"
         android:layout_marginEnd="20dp"
         android:layout_marginBottom="10dp"
+        android:textColor="@color/white"
         android:textSize="13sp"
+        android:textStyle="bold"
         android:visibility="gone"
         />
         <RelativeLayout

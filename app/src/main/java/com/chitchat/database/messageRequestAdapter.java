@@ -2,9 +2,7 @@ package com.chitchat.database;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.media.Image;
 import android.os.Handler;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,6 +15,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.chitchat.R;
+import com.google.android.material.progressindicator.LinearProgressIndicator;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -24,10 +23,7 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
-import org.w3c.dom.Text;
-
 import java.util.ArrayList;
-import java.util.logging.LogRecord;
 
 public class messageRequestAdapter extends RecyclerView.Adapter<messageRequestAdapter.myViewHolder> {
     Context context;
@@ -46,8 +42,9 @@ public class messageRequestAdapter extends RecyclerView.Adapter<messageRequestAd
     @NonNull
     @Override
     public messageRequestAdapter.myViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        View v = LayoutInflater.from(context).inflate(R.layout.fragment_message_request,parent,false);
         View view = LayoutInflater.from(context).inflate(R.layout.single_row_design_message_request,parent,false);
-        return new myViewHolder(view);
+        return new myViewHolder(view,v);
     }
 
     @Override
@@ -73,6 +70,7 @@ public class messageRequestAdapter extends RecyclerView.Adapter<messageRequestAd
         holder.decline.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                holder.progressBar.setVisibility(View.VISIBLE);
                 DatabaseReference reference = database.getReference("requests");
                 reference.addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
@@ -103,6 +101,7 @@ public class messageRequestAdapter extends RecyclerView.Adapter<messageRequestAd
                         reference.child(keyValue).removeValue();
                         model.remove(model.get(position));
                         notifyItemRemoved(position);
+                        holder.progressBar.setVisibility(View.GONE);
                         Snackbar.make(parentLayout,fullName + "'s Request Declined Successfully",Snackbar.LENGTH_LONG).show();
                     }
                 },2000);
@@ -112,6 +111,8 @@ public class messageRequestAdapter extends RecyclerView.Adapter<messageRequestAd
         holder.accept.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                holder.accept.setClickable(false);
+                holder.progressBar.setVisibility(View.VISIBLE);
                 DatabaseReference reference = database.getReference("requests");
                 reference.addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
@@ -143,8 +144,10 @@ public class messageRequestAdapter extends RecyclerView.Adapter<messageRequestAd
                     public void run() {
                         DatabaseReference reference = database.getReference("requests");
                         reference.child(keyValue).removeValue();
+                        holder.accept.setClickable(true);
                         model.remove(model.get(position));
                         notifyItemRemoved(position);
+                        holder.progressBar.setVisibility(View.VISIBLE);
                         Snackbar.make(parentLayout,fullName + "'s Request Accepted Successfully",Snackbar.LENGTH_LONG).show();
                     }
                 },2000);
@@ -156,12 +159,14 @@ public class messageRequestAdapter extends RecyclerView.Adapter<messageRequestAd
     public static class myViewHolder extends RecyclerView.ViewHolder{
         ImageView profilePicture,accept,decline;
         TextView userName;
-        public myViewHolder(@NonNull View itemView) {
+        LinearProgressIndicator progressBar;
+        public myViewHolder(@NonNull View itemView, View v) {
             super(itemView);
             profilePicture = itemView.findViewById(R.id.profilePicture);
             accept = itemView.findViewById(R.id.accept);
             decline = itemView.findViewById(R.id.decline);
             userName = itemView.findViewById(R.id.userName);
+            progressBar = v.findViewById(R.id.progressBar);
         }
     }
 

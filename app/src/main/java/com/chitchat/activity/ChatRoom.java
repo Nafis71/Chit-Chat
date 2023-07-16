@@ -6,11 +6,15 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.airbnb.lottie.LottieAnimationView;
@@ -36,6 +40,7 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.UUID;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -56,6 +61,7 @@ public class ChatRoom extends AppCompatActivity {
     ValueEventListener listener;
     FirebaseUser senderId = auth.getCurrentUser();
     String receiverId,receiverName,receiverPhoto;
+    RelativeLayout parentLayout;
     byte[] publicKey,privateKey,encryptionKey,decryptionKey,secretKey;
 //    byte [] encryptionKey = {9,115,51,86,105,4,-31,-23,-68,88,17,20,3,-105,119,-53};
     RSA rsa = new RSA();
@@ -122,6 +128,11 @@ public class ChatRoom extends AppCompatActivity {
         seenStatus = findViewById(R.id.seenStatus);
         Glide.with(this).load(receiverPhoto).into(profilePicture);
         userName.setText(receiverName);
+        parentLayout = findViewById(R.id.parentLayout);
+        Window window = getWindow();
+        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+        window.setStatusBarColor(Color.parseColor("#075e54"));
+//        parentLayout.getBackground().setAlpha(100);
     }
     public void loadSecretKey() throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeySpecException, InvalidKeyException {
         SharedPreferences preferences = getSharedPreferences("secretKey",MODE_PRIVATE);
@@ -133,7 +144,6 @@ public class ChatRoom extends AppCompatActivity {
         privateKey = Base64.getDecoder().decode(preferences.getString("privateKey",""));
     }
     public void readMessages(){
-        Log.w("SecretKey",Base64.getEncoder().encodeToString(secretKey));
         recyclerView.setHasFixedSize(true);
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
         linearLayoutManager.setStackFromEnd(true);
@@ -211,6 +221,10 @@ public class ChatRoom extends AppCompatActivity {
     }
     private void sendMessage() throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeySpecException, InvalidKeyException {
         String message = textBox.getText().toString().trim();
+        if(message.isEmpty())
+        {
+            return;
+        }
         String encryptedMessage = aes.encryption(message,secretKey);
         encryptionKey = rsa.encrypt(secretKey,publicKey);
         HashMap<String,String> hashMap = new HashMap<>();
@@ -246,7 +260,6 @@ public class ChatRoom extends AppCompatActivity {
             }
         });
     }
-
     public void onBackPressed()
     {
         reference.removeEventListener(listener);

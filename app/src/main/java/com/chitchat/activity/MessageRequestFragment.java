@@ -16,6 +16,7 @@ import android.widget.RelativeLayout;
 import com.chitchat.R;
 import com.chitchat.database.checkRequest;
 import com.chitchat.database.messageRequestAdapter;
+import com.google.android.material.progressindicator.LinearProgressIndicator;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -30,6 +31,7 @@ public class MessageRequestFragment extends Fragment {
     ArrayList<checkRequest> list = new ArrayList<>();
     messageRequestAdapter adapter;
     RelativeLayout parentLayout;
+    LinearProgressIndicator progressBar;
     FirebaseDatabase database = FirebaseDatabase.getInstance("https://chit-chat-118c1-default-rtdb.asia-southeast1.firebasedatabase.app/");
     String userId;
     public MessageRequestFragment() {
@@ -50,6 +52,7 @@ public class MessageRequestFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         recyclerView = requireView().findViewById(R.id.recyclerView);
         parentLayout = requireView().findViewById(R.id.parentLayout);
+        progressBar = recyclerView.findViewById(R.id.progressBar);
         recyclerView.setHasFixedSize(true);
         recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         DatabaseReference reference = database.getReference("requests");

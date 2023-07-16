@@ -2,8 +2,8 @@
     <!-- Base application theme. -->
     <style name="Base.Theme.ChitChat" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Primary brand color. -->
-        <item name="colorPrimary">#4F5FDE</item>
-        <item name="colorPrimaryVariant">#4F5FDE</item>
+        <item name="colorPrimary">#075e54</item>
+        <item name="colorPrimaryVariant">#075e54</item>
         <item name="colorOnPrimary">@color/white</item>
         <!-- Secondary brand color. -->
         <item name="colorSecondary">#4F5FDE</item>

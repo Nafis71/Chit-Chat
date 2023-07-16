@@ -5,13 +5,30 @@
     android:layout_height="match_parent"
     android:id="@+id/parentLayout"
     tools:context=".activity.MessageRequestFragment">
-
-    <androidx.recyclerview.widget.RecyclerView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:id="@+id/recyclerView"
-        >
+        android:orientation="vertical">
+        <com.google.android.material.progressindicator.LinearProgressIndicator
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="5dp"
+            android:indeterminate="true"
+            android:id="@+id/progressBar"
+            android:visibility="gone"
+            >
 
-    </androidx.recyclerview.widget.RecyclerView>
+        </com.google.android.material.progressindicator.LinearProgressIndicator>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/recyclerView"
+            >
+
+        </androidx.recyclerview.widget.RecyclerView>
+    </LinearLayout>
+
 
 </RelativeLayout>

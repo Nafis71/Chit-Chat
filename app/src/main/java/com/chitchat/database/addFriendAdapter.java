@@ -24,7 +24,6 @@ import com.google.firebase.database.ValueEventListener;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.UUID;
-import java.util.logging.Handler;
 
 public class addFriendAdapter extends RecyclerView.Adapter<addFriendAdapter.myViewHolder> {
     Context context;

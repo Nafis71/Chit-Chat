@@ -1,13 +1,18 @@
 package com.chitchat.activity;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.viewpager2.widget.ViewPager2;
 
+import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.ImageView;
+import android.widget.RelativeLayout;
 
 import com.bumptech.glide.Glide;
 import com.chitchat.R;
@@ -25,6 +30,7 @@ public class ChatList extends AppCompatActivity {
     String userId,photoUrl,fullName;
     ViewPager2 vPager;
     TabLayout tabs;
+    RelativeLayout parentLayout;
     private final  String [] titles = new String[]{"Chats","Requests","Add Friends"};
     FirebaseDatabase database = FirebaseDatabase.getInstance("https://chit-chat-118c1-default-rtdb.asia-southeast1.firebasedatabase.app/");
     @Override
@@ -50,6 +56,10 @@ public class ChatList extends AppCompatActivity {
         profilePicture = findViewById(R.id.profilePicture);
         vPager = findViewById(R.id.vPager);
         tabs =  findViewById(R.id.tabs);
+        parentLayout = findViewById(R.id.parentLayout);
+        Window window = getWindow();
+        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+        window.setStatusBarColor(Color.parseColor("#075e54"));
     }
     public void loadProfileData(){
         DatabaseReference userReference = database.getReference("users");

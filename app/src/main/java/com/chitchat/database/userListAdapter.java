@@ -20,6 +20,8 @@ import com.bumptech.glide.Glide;
 import com.chitchat.encryption.AES;
 import com.chitchat.activity.ChatRoom;
 import com.chitchat.R;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -97,7 +99,7 @@ public class userListAdapter extends RecyclerView.Adapter<userListAdapter.myView
                                 messageModel model = snap.getValue(messageModel.class);
                                 assert model != null;
                                 senderId = model.getSenderId();
-                                if(model.getSenderId().equals(dbmodel.getUserId()))
+                                if(model.getSenderId().equals(dbmodel.getUserId()) && model.getReceiverId().equals(userId))
                                 {
                                     String decryptedMessage = null;
                                     try {
