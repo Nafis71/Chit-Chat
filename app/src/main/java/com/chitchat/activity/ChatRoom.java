@@ -148,7 +148,7 @@ public class ChatRoom extends AppCompatActivity {
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
         linearLayoutManager.setStackFromEnd(true);
         recyclerView.setLayoutManager(linearLayoutManager);
-        listener = reference.addValueEventListener(new ValueEventListener() {
+        listener = reference.child(senderId.getUid()).child(receiverId).addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 list.clear();
@@ -156,6 +156,7 @@ public class ChatRoom extends AppCompatActivity {
                 for(DataSnapshot snap : snapshot.getChildren())
                 {
                     messageModel model = snap.getValue(messageModel.class);
+                    Log.w("Key",snap.getValue().toString());
                     assert model != null;
                     if(model.getReceiverId().equals(receiverId) && model.getSenderId().equals(senderId.getUid())){
                         String decryptedMessage = null;
@@ -191,7 +192,7 @@ public class ChatRoom extends AppCompatActivity {
                         model.setMessage(decryptedMessage);
                         list.add(model);
                         DatabaseReference seenReference = database.getReference("chats");
-                        seenReference.child(snap.getKey()).child("seenStatus").setValue("seen");
+                        seenReference.child(senderId.getUid()).child(receiverId).child(snap.getKey()).child("seenStatus").setValue("seen");
                         if(model.getSeenStatus().equals("seen")) {
                             seenStatus.setVisibility(View.GONE);
                         }else{
@@ -227,7 +228,8 @@ public class ChatRoom extends AppCompatActivity {
         hashMap.put("message",encryptedMessage);hashMap.put("secretKey",Base64.getEncoder().encodeToString(encryptionKey));
         hashMap.put("seenStatus","unseen");
         DatabaseReference reference = database.getReference();
-        reference.child("chats").push().setValue(hashMap);
+        reference.child("chats").child(senderId.getUid()).child(receiverId).push().setValue(hashMap);
+        reference.child("chats").child(receiverId).child(senderId.getUid()).push().setValue(hashMap);
         textBox.setText(null);
     }
     public void onStart(){
@@ -254,10 +256,11 @@ public class ChatRoom extends AppCompatActivity {
             }
         });
     }
+
     public void onBackPressed()
     {
         reference.removeEventListener(listener);
-        finishAndRemoveTask();
+        finish();
     }
     @Override
     protected void onPause() {

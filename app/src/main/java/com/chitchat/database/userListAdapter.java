@@ -87,7 +87,7 @@ public class userListAdapter extends RecyclerView.Adapter<userListAdapter.myView
                     }
                 });
                 DatabaseReference chatReference = database.getReference("chats");
-                chatReference.limitToLast(1).addValueEventListener(new ValueEventListener() {
+                chatReference.child(userId).child(dbmodel.getUserId()).limitToLast(1).addValueEventListener(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
                         if(snapshot.exists())
@@ -163,7 +163,27 @@ public class userListAdapter extends RecyclerView.Adapter<userListAdapter.myView
                         if(counter == 0 && !senderId.equals(userId))
                         {
                             DatabaseReference reference = database.getReference("chats");
-                            reference.child(chatKey).child("seenStatus").setValue("seen");
+                            reference.child(userId).child(dbmodel.getUserId()).child(chatKey).child("seenStatus").setValue("seen");
+                            DatabaseReference reference2 = database.getReference("chats");
+                            reference2.child(dbmodel.getUserId()).child(userId).limitToLast(1).addListenerForSingleValueEvent(new ValueEventListener() {
+                                @Override
+                                public void onDataChange(@NonNull DataSnapshot snapshot) {
+                                    if(snapshot.exists())
+                                    {
+                                        for(DataSnapshot snap : snapshot.getChildren())
+                                        {
+                                            chatKey = snap.getKey();
+                                            reference.child(dbmodel.getUserId()).child(userId).child(chatKey).child("seenStatus").setValue("seen");
+                                        }
+
+                                    }
+                                }
+
+                                @Override
+                                public void onCancelled(@NonNull DatabaseError error) {
+
+                                }
+                            });
                         }
                         Intent intent = new Intent(context, ChatRoom.class);
                         intent.putExtra("userId",dbmodel.getUserId());

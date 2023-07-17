@@ -45,12 +45,6 @@ public class RSA {
         decipher.init(Cipher.DECRYPT_MODE,privateKey);
         return decipher.doFinal(text);
     }
-    public byte[] getPrivateKey(byte[] publicKey) throws NoSuchAlgorithmException, InvalidKeySpecException {
-        PrivateKey privateKey = KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(publicKey));
-        return  privateKey.getEncoded();
-
-    }
-
     public byte[] getPrivateKey() {
         return privateKey.getEncoded();
     }
