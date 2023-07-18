@@ -51,6 +51,7 @@ public class ChatList extends AppCompatActivity {
     Bitmap image;
     RelativeLayout parentLayout;
     String decryptedMessage = null;
+    byte[] dbPublicKey,privateKey,publicKey,secretKey;
     boolean isPaused;
     private static  final  String CHANNEL_ID = "Message Channel";
     private static  final  int NOTIFICATION_ID = 100;
@@ -61,16 +62,21 @@ public class ChatList extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         userId = getIntent().getStringExtra("userId");
         setContentView(R.layout.activity_chat_list);
+        try {
+            loadKeys();
+        } catch (NoSuchPaddingException | NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
         viewBinding();
-        Thread notificationThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-
-                loadIncomingMessage();
-
-            }
-        });
-        notificationThread.start();
+//        Thread notificationThread = new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//
+//                loadIncomingMessage();
+//
+//            }
+//        });
+//        notificationThread.start();
 
         Thread thread = new Thread(new Runnable() {
             @Override
@@ -83,6 +89,13 @@ public class ChatList extends AppCompatActivity {
         vPager.setAdapter(adapter);
         new TabLayoutMediator(tabs,vPager,((tab, position) ->tab.setText(titles[position]))).attach();
         vPager.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+    }
+    public void loadKeys() throws NoSuchPaddingException, NoSuchAlgorithmException {
+        SharedPreferences preferences = getSharedPreferences("secretKey",Context.MODE_PRIVATE);
+        secretKey = Base64.getDecoder().decode(preferences.getString("secretKey","null"));
+        preferences = getSharedPreferences("RSA",Context.MODE_PRIVATE);
+        privateKey = Base64.getDecoder().decode(preferences.getString("privateKey","null"));
+        publicKey = Base64.getDecoder().decode(preferences.getString("publicKey","null"));
     }
     public void viewBinding()
     {
@@ -144,7 +157,7 @@ public class ChatList extends AppCompatActivity {
                     {
                         messageModel messageModel = snap.getValue(com.chitchat.database.messageModel.class);
                         assert messageModel != null;
-                        if(!messageModel.getSenderId().equals(userId))
+                        if(!messageModel.getSenderId().equals(userId) && Base64.getEncoder().encodeToString(dbPublicKey).equals(Base64.getEncoder().encodeToString(publicKey)))
                         {
                             if(isPaused)
                             {

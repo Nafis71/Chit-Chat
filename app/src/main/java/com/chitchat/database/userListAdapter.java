@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.os.Handler;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -38,7 +39,7 @@ public class userListAdapter extends RecyclerView.Adapter<userListAdapter.myView
     Context context;
     ArrayList<userListModel> model;
     AES aes = new AES();
-    byte[] privateKey,secretKey;
+    byte[] privateKey,secretKey,dbPublicKey,publicKey;
     String userId,chatKey,senderId;
     int counter =0;
 
@@ -57,8 +58,12 @@ public class userListAdapter extends RecyclerView.Adapter<userListAdapter.myView
 
     @Override
     public void onBindViewHolder(@NonNull userListAdapter.myViewHolder holder, int position) {
-                loadKeys();
-                userListModel dbmodel = model.get(position);
+        try {
+            loadKeys();
+        } catch (NoSuchPaddingException | NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+        userListModel dbmodel = model.get(position);
                 Glide.with(context).load(dbmodel.getPhotoUrl()).into(holder.profilePicture);
                 holder.userName.setText(dbmodel.getFullName());
                 FirebaseDatabase database = FirebaseDatabase.getInstance("https://chit-chat-118c1-default-rtdb.asia-southeast1.firebasedatabase.app/");
@@ -70,15 +75,16 @@ public class userListAdapter extends RecyclerView.Adapter<userListAdapter.myView
                         {
                             String status =  String.valueOf(snapshot.child("onlineStatus").getValue());
                             if(Integer.parseInt(status) != 0 )
-                            {
-                                holder.onlineStatus.setText("Online");
-                                holder.onlineStatus.setTextColor(Color.parseColor("#28B463"));
-                            }
+                                {
+                                    holder.onlineStatus.setText("Online");
+                                    holder.onlineStatus.setTextColor(Color.parseColor("#28B463"));
+                                }
                             else
-                            {
-                                holder.onlineStatus.setText("Offline");
-                                holder.onlineStatus.setTextColor(Color.parseColor("#666666"));
+                                {
+                                    holder.onlineStatus.setText("Offline");
+                                    holder.onlineStatus.setTextColor(Color.parseColor("#666666"));
                             }
+
                         }
                     }
                     @Override
@@ -86,6 +92,12 @@ public class userListAdapter extends RecyclerView.Adapter<userListAdapter.myView
                         throw error.toException();
                     }
                 });
+                DatabaseReference userPublicKey = database.getReference("users");
+        userPublicKey.child(userId).child("publicKey").get().addOnCompleteListener(new OnCompleteListener<DataSnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<DataSnapshot> task) {
+                DataSnapshot snapshot = task.getResult();
+                dbPublicKey = Base64.getDecoder().decode(String.valueOf(snapshot.getValue()));
                 DatabaseReference chatReference = database.getReference("chats");
                 chatReference.child(userId).child(dbmodel.getUserId()).limitToLast(1).addValueEventListener(new ValueEventListener() {
                     @Override
@@ -99,11 +111,12 @@ public class userListAdapter extends RecyclerView.Adapter<userListAdapter.myView
                                 messageModel model = snap.getValue(messageModel.class);
                                 assert model != null;
                                 senderId = model.getSenderId();
-                                if(model.getSenderId().equals(dbmodel.getUserId()) && model.getReceiverId().equals(userId))
+                                Log.w("dbPublicKey",Base64.getEncoder().encodeToString(dbPublicKey));
+                                if(model.getSenderId().equals(dbmodel.getUserId()) && model.getReceiverId().equals(userId) && Base64.getEncoder().encodeToString(dbPublicKey).equals(Base64.getEncoder().encodeToString(publicKey)))
                                 {
                                     String decryptedMessage = null;
                                     try {
-                                       decryptedMessage =  aes.decryption(model.getMessage(),model.getSecretKey(),privateKey);
+                                        decryptedMessage =  aes.decryption(model.getMessage(),model.getSecretKey(),privateKey);
                                     } catch (NoSuchPaddingException | NoSuchAlgorithmException e) {
                                         holder.message.setText("No messages");
                                     }
@@ -125,7 +138,7 @@ public class userListAdapter extends RecyclerView.Adapter<userListAdapter.myView
 
 
                                 }
-                                else if(!model.getReceiverId().equals(userId) && dbmodel.getUserId().equals(model.getReceiverId()))
+                                else if(!model.getReceiverId().equals(userId) && dbmodel.getUserId().equals(model.getReceiverId()) && Base64.getEncoder().encodeToString(dbPublicKey).equals(Base64.getEncoder().encodeToString(publicKey)))
                                 {
                                     String decryptedMessage = null;
                                     try {
@@ -156,6 +169,12 @@ public class userListAdapter extends RecyclerView.Adapter<userListAdapter.myView
                         throw error.toException();
                     }
                 });
+            }
+            });
+
+
+
+
                 holder.card.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
@@ -184,11 +203,15 @@ public class userListAdapter extends RecyclerView.Adapter<userListAdapter.myView
 
                                 }
                             });
+                            counter = 1;
                         }
+
                         Intent intent = new Intent(context, ChatRoom.class);
                         intent.putExtra("userId",dbmodel.getUserId());
                         intent.putExtra("photoUrl",dbmodel.getPhotoUrl());
                         intent.putExtra("fullName",dbmodel.getFullName());
+                        intent.putExtra("dbPublicKey",Base64.getEncoder().encodeToString(dbPublicKey));
+                        intent.putExtra("senderPublicKey",Base64.getEncoder().encodeToString(publicKey));
                         context.startActivity(intent);
                     }
                 });
@@ -212,11 +235,12 @@ public class userListAdapter extends RecyclerView.Adapter<userListAdapter.myView
         return model.size();
     }
 
-    public void loadKeys(){
-        SharedPreferences preferences = context.getSharedPreferences("RSA",Context.MODE_PRIVATE);
-        privateKey = Base64.getDecoder().decode(preferences.getString("privateKey","null"));
-        Log.w("PrivateKEy",Base64.getEncoder().encodeToString(privateKey));
-        preferences = context.getSharedPreferences("secretKey",Context.MODE_PRIVATE);
+    public void loadKeys() throws NoSuchPaddingException, NoSuchAlgorithmException {
+
+        SharedPreferences preferences = context.getSharedPreferences("secretKey",Context.MODE_PRIVATE);
         secretKey = Base64.getDecoder().decode(preferences.getString("secretKey","null"));
+        preferences = context.getSharedPreferences("RSA",Context.MODE_PRIVATE);
+        privateKey = Base64.getDecoder().decode(preferences.getString("privateKey","null"));
+        publicKey = Base64.getDecoder().decode(preferences.getString("publicKey","null"));
     }
 }

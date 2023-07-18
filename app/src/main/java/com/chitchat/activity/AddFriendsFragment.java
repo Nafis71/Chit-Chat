@@ -69,15 +69,18 @@ public class AddFriendsFragment extends Fragment {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 list.clear();
-                for (DataSnapshot snap : snapshot.getChildren()) {
-                    userListModel model = snap.getValue(userListModel.class);
-                    assert model != null;
-                    Log.w("user ID", model.getUserId());
-                    if (!model.getUserId().equals(userId)) {
-                        list.add(model);
+                if(snapshot.exists())
+                {
+                    for (DataSnapshot snap : snapshot.getChildren()) {
+                        userListModel model = snap.getValue(userListModel.class);
+                        assert model != null;
+                        if (!model.getUserId().equals(userId)) {
+                            list.add(model);
+                        }
+                        adapter.notifyDataSetChanged();
                     }
-                    adapter.notifyDataSetChanged();
                 }
+
             }
 
             @Override

@@ -62,7 +62,7 @@ public class SignUp extends AppCompatActivity {
     byte[] publicKey,privateKey;
     FirebaseUser user;
     FirebaseAuth auth;
-    private static final byte[] secretKey ={-65, 112, -102, -101, 88, 78, -119, 66, -46, -108, -92, 56, 64, 54, -75, -43, -23, -22, 43, 101, 16, 113, -31, 61, -92, 37, -77, 78, 81, -100, 19, 8};
+    private  byte[] secretKey;
     //256bit
 
     FirebaseDatabase database = FirebaseDatabase.getInstance("https://chit-chat-118c1-default-rtdb.asia-southeast1.firebasedatabase.app/");
@@ -244,7 +244,11 @@ public class SignUp extends AppCompatActivity {
                     public void run() {
                         if(task.isSuccessful())
                         {
-                            AdvanceEncryptionStandardSetup();
+                            try {
+                                AdvanceEncryptionStandardSetup();
+                            } catch (NoSuchAlgorithmException e) {
+                                throw new RuntimeException(e);
+                            }
                             auth.signOut();
                             progressBar.setVisibility(View.GONE);
                             Intent intent = new Intent(SignUp.this, Login.class);
@@ -263,7 +267,9 @@ public class SignUp extends AppCompatActivity {
     }
 
 
-    public void AdvanceEncryptionStandardSetup() {
+    public void AdvanceEncryptionStandardSetup() throws NoSuchAlgorithmException {
+        AES aes = new AES();
+        secretKey = aes.init(256);
         SharedPreferences preferences = getSharedPreferences("secretKey",MODE_PRIVATE);
         SharedPreferences.Editor editor = preferences.edit();
         editor.putString("secretKey", Base64.getEncoder().encodeToString(secretKey));
@@ -271,7 +277,6 @@ public class SignUp extends AppCompatActivity {
         generateRSA();
     }
     private void generateRSA(){
-        AES aes = new AES();
         RSA rsa = new RSA();
         rsa.init(2048);
         publicKey = rsa.getPublicKey();
@@ -279,16 +284,10 @@ public class SignUp extends AppCompatActivity {
         SharedPreferences preferences = getSharedPreferences("RSA",MODE_PRIVATE);
         SharedPreferences.Editor editor = preferences.edit();
         editor.putString("privateKey", Base64.getEncoder().encodeToString(privateKey));
+        editor.putString("publicKey", Base64.getEncoder().encodeToString(publicKey));
         editor.apply();
-        byte[] encryptedPrivateKey = null;
-        try {
-            encryptedPrivateKey = Base64.getDecoder().decode(aes.encryptionRSA(Base64.getEncoder().encodeToString(privateKey),secretKey));
-        } catch (NoSuchPaddingException | NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
-        }
         DatabaseReference reference = database.getReference("users");
         reference.child(user.getUid()).child("publicKey").setValue(Base64.getEncoder().encodeToString(publicKey));
-        reference.child(user.getUid()).child("privateKey").setValue(Base64.getEncoder().encodeToString(encryptedPrivateKey));
     }
     private void stateListener(){
         fullNameText.addTextChangedListener(new TextWatcher() {

@@ -17,20 +17,17 @@ public class AES {
 
     Cipher cipher, decipher;
     SecretKeySpec secretKeySpec;
-    byte[] secretKey;
+
     public static final String ALGORITHM = "AES";
 
-    public byte[] getSecretKey() {
-        return secretKey;
-    }
 
     public AES() {
     }
-    public void init(int keySize) throws NoSuchAlgorithmException {
+    public byte[] init(int keySize) throws NoSuchAlgorithmException {
         KeyGenerator generator = KeyGenerator.getInstance(ALGORITHM);
         generator.init(keySize); // The AES key size in number of bits
         SecretKey secKey = generator.generateKey();
-        secretKey = secKey.getEncoded();
+        return secKey.getEncoded();
     }
     public String encryption(String message, byte[] secretKey) throws NoSuchPaddingException, NoSuchAlgorithmException {
         cipher = Cipher.getInstance(ALGORITHM);
@@ -93,18 +90,15 @@ public class AES {
         }
         return Base64.getEncoder().encodeToString(encryptedByte);
     }
-    public String decryptionRSA(String message,byte[] secretKey) throws NoSuchPaddingException, NoSuchAlgorithmException {
+    public byte[] decryptionRSA(String message, byte[] secretKey) throws NoSuchPaddingException, NoSuchAlgorithmException {
         decipher = Cipher.getInstance(ALGORITHM);
         byte[] encryptedByte = Base64.getDecoder().decode(message);
-        byte[] decryption;
         try {
             secretKeySpec = new SecretKeySpec(secretKey,ALGORITHM);
             decipher.init(Cipher.DECRYPT_MODE,secretKeySpec);
-            decryption = decipher.doFinal(encryptedByte);
+            return decipher.doFinal(encryptedByte);
         } catch (InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
             throw new RuntimeException(e);
         }
-        return Base64.getEncoder().encodeToString(decryption);
-
     }
 }

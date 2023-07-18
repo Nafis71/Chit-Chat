@@ -16,6 +16,7 @@ import android.widget.LinearLayout;
 
 import com.chitchat.R;
 import com.chitchat.encryption.AES;
+import com.chitchat.encryption.RSA;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.Task;
@@ -50,7 +51,7 @@ public class Login extends AppCompatActivity {
     byte[] publicKey,privateKey;
     FirebaseAuth auth = FirebaseAuth.getInstance();
     FirebaseUser user;
-    private static final byte[] secretKey ={-65, 112, -102, -101, 88, 78, -119, 66, -46, -108, -92, 56, 64, 54, -75, -43, -23, -22, 43, 101, 16, 113, -31, 61, -92, 37, -77, 78, 81, -100, 19, 8}; //256bit
+
 
     FirebaseDatabase database = FirebaseDatabase.getInstance("https://chit-chat-118c1-default-rtdb.asia-southeast1.firebasedatabase.app/");
 
@@ -161,41 +162,38 @@ public class Login extends AppCompatActivity {
     }
     public void AdvanceEncryptionStandardSetup() throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeySpecException, InvalidKeyException {
         SharedPreferences preferences = getSharedPreferences("secretKey",MODE_PRIVATE);
-        SharedPreferences.Editor editor = preferences.edit();
-        editor.putString("secretKey",Base64.getEncoder().encodeToString(secretKey));
-        editor.apply();
-        loadRSA();
+        String StoredSecretKey = preferences.getString("secretKey","null");
+        if(StoredSecretKey.equals("null")){
+            AES aes = new AES();
+            byte[] secretKey = aes.init(256);
+            SharedPreferences preferences2 = getSharedPreferences("secretKey",MODE_PRIVATE);
+            SharedPreferences.Editor editor = preferences2.edit();
+            editor.putString("secretKey", Base64.getEncoder().encodeToString(secretKey));
+            editor.apply();
+            loadRSA();
+        }else{
+            loadRSA();
+        }
     }
     private void loadRSA() {
-        DatabaseReference reference = database.getReference("users");
-        reference.child(user.getUid()).addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if(snapshot.exists())
-                {
-                    SharedPreferences preferences =getSharedPreferences("RSA",MODE_PRIVATE);
-                    SharedPreferences.Editor editor = preferences.edit();
-                    String encryptedPrivateKey = String.valueOf(snapshot.child("privateKey").getValue());
-                    AES aes = new AES();
-                    String decryptedPrivateKey = null;
-                    try {
-                        decryptedPrivateKey = aes.decryptionRSA(encryptedPrivateKey,secretKey);
-
-                    } catch (NoSuchPaddingException | NoSuchAlgorithmException e) {
-                        throw new RuntimeException(e);
-                    }
-                    editor.putString("privateKey",decryptedPrivateKey);
-                    Log.w("PrivateKEy",decryptedPrivateKey);
-                    editor.putString("publicKey",String.valueOf(snapshot.child("publicKey").getValue()));
-                    editor.apply();
-                }
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-                throw  error.toException();
-            }
-        });
+        SharedPreferences preferences = getSharedPreferences("RSA",MODE_PRIVATE);
+        String StoredPublicKey = preferences.getString("publicKey","null");
+        if(StoredPublicKey.equals("null"))
+        {
+            RSA rsa = new RSA();
+            rsa.init(2048);
+            publicKey = rsa.getPublicKey();
+            privateKey = rsa.getPrivateKey();
+            SharedPreferences StorePreferences = getSharedPreferences("RSA",MODE_PRIVATE);
+            SharedPreferences.Editor editor = StorePreferences.edit();
+            editor.putString("privateKey", Base64.getEncoder().encodeToString(privateKey));
+            editor.putString("publicKey", Base64.getEncoder().encodeToString(publicKey));
+            editor.apply();
+            DatabaseReference deleteReference = database.getReference("chats");
+            deleteReference.child(user.getUid()).removeValue();
+            DatabaseReference reference = database.getReference("users");
+            reference.child(user.getUid()).child("publicKey").setValue(Base64.getEncoder().encodeToString(publicKey));
+        }
     }
     public void stateListener(){
         emailText.addTextChangedListener(new TextWatcher() {

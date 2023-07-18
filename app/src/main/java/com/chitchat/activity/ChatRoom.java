@@ -62,7 +62,7 @@ public class ChatRoom extends AppCompatActivity {
     FirebaseUser senderId = auth.getCurrentUser();
     String receiverId,receiverName,receiverPhoto;
     RelativeLayout parentLayout;
-    byte[] publicKey,privateKey,encryptionKey,decryptionKey,secretKey;
+    byte[] publicKey,privateKey,encryptionKey,decryptionKey,secretKey,dbPublicKey,senderPublicKey;
 //    byte [] encryptionKey = {9,115,51,86,105,4,-31,-23,-68,88,17,20,3,-105,119,-53};
     RSA rsa = new RSA();
     AES aes = new AES();
@@ -74,9 +74,15 @@ public class ChatRoom extends AppCompatActivity {
         receiverId = getIntent().getStringExtra("userId");
         receiverName = getIntent().getStringExtra("fullName");
         receiverPhoto = getIntent().getStringExtra("photoUrl");
+        dbPublicKey = Base64.getDecoder().decode(getIntent().getStringExtra("dbPublicKey"));
+        senderPublicKey = Base64.getDecoder().decode(getIntent().getStringExtra("senderPublicKey"));
         loadReceiverPublicKey();
         viewBinding();
-        getRSAKeys();
+        try {
+            getRSAKeys();
+        } catch (NoSuchPaddingException | NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
         try {
             loadSecretKey();
         } catch (NoSuchPaddingException | IllegalBlockSizeException | NoSuchAlgorithmException |
@@ -139,7 +145,7 @@ public class ChatRoom extends AppCompatActivity {
         String storedSecretKey = preferences.getString("secretKey","null");
         secretKey = Base64.getDecoder().decode(storedSecretKey);
     }
-    public void getRSAKeys(){
+    public void getRSAKeys() throws NoSuchPaddingException, NoSuchAlgorithmException {
         SharedPreferences preferences = getSharedPreferences("RSA",MODE_PRIVATE);
         privateKey = Base64.getDecoder().decode(preferences.getString("privateKey",""));
     }
@@ -158,7 +164,7 @@ public class ChatRoom extends AppCompatActivity {
                     messageModel model = snap.getValue(messageModel.class);
                     Log.w("Key",snap.getValue().toString());
                     assert model != null;
-                    if(model.getReceiverId().equals(receiverId) && model.getSenderId().equals(senderId.getUid())){
+                    if(model.getReceiverId().equals(receiverId) && model.getSenderId().equals(senderId.getUid())&& Base64.getEncoder().encodeToString(dbPublicKey).equals(Base64.getEncoder().encodeToString(senderPublicKey))){
                         String decryptedMessage = null;
                         try {
                             decryptedMessage = aes.decryptionSender(model.getMessage(),secretKey);
@@ -177,7 +183,7 @@ public class ChatRoom extends AppCompatActivity {
                             seenStatus.setVisibility(View.GONE);
                         }
                     }
-                    else if(model.getReceiverId().equals(senderId.getUid()) && model.getSenderId().equals(receiverId))
+                    else if(model.getReceiverId().equals(senderId.getUid()) && model.getSenderId().equals(receiverId) && Base64.getEncoder().encodeToString(dbPublicKey).equals(Base64.getEncoder().encodeToString(senderPublicKey)))
                     {
                         String decryptedMessage = null;
                         try {
