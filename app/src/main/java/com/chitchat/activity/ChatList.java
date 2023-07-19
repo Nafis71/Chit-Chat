@@ -68,15 +68,15 @@ public class ChatList extends AppCompatActivity {
             throw new RuntimeException(e);
         }
         viewBinding();
-//        Thread notificationThread = new Thread(new Runnable() {
-//            @Override
-//            public void run() {
-//
-//                loadIncomingMessage();
-//
-//            }
-//        });
-//        notificationThread.start();
+        Thread notificationThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+
+                loadIncomingMessage();
+
+            }
+        });
+        notificationThread.start();
 
         Thread thread = new Thread(new Runnable() {
             @Override
@@ -157,7 +157,7 @@ public class ChatList extends AppCompatActivity {
                     {
                         messageModel messageModel = snap.getValue(com.chitchat.database.messageModel.class);
                         assert messageModel != null;
-                        if(!messageModel.getSenderId().equals(userId) && Base64.getEncoder().encodeToString(dbPublicKey).equals(Base64.getEncoder().encodeToString(publicKey)))
+                        if(!messageModel.getSenderId().equals(userId))
                         {
                             if(isPaused)
                             {

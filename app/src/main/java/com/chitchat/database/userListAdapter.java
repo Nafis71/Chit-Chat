@@ -40,7 +40,7 @@ public class userListAdapter extends RecyclerView.Adapter<userListAdapter.myView
     ArrayList<userListModel> model;
     AES aes = new AES();
     byte[] privateKey,secretKey,dbPublicKey,publicKey;
-    String userId,chatKey,senderId;
+    String userId,chatKey,receiverChatKey,senderId;
     int counter =0;
 
     public userListAdapter(Context context, ArrayList<userListModel> model,String userId) {
@@ -107,13 +107,13 @@ public class userListAdapter extends RecyclerView.Adapter<userListAdapter.myView
                             for(DataSnapshot snap : snapshot.getChildren())
                             {
                                 chatKey = snap.getKey();
-                                counter = 0;
                                 messageModel model = snap.getValue(messageModel.class);
                                 assert model != null;
                                 senderId = model.getSenderId();
                                 Log.w("dbPublicKey",Base64.getEncoder().encodeToString(dbPublicKey));
                                 if(model.getSenderId().equals(dbmodel.getUserId()) && model.getReceiverId().equals(userId) && Base64.getEncoder().encodeToString(dbPublicKey).equals(Base64.getEncoder().encodeToString(publicKey)))
                                 {
+                                    counter = 0;
                                     String decryptedMessage = null;
                                     try {
                                         decryptedMessage =  aes.decryption(model.getMessage(),model.getSecretKey(),privateKey);
@@ -171,10 +171,6 @@ public class userListAdapter extends RecyclerView.Adapter<userListAdapter.myView
                 });
             }
             });
-
-
-
-
                 holder.card.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
@@ -190,9 +186,16 @@ public class userListAdapter extends RecyclerView.Adapter<userListAdapter.myView
                                     if(snapshot.exists())
                                     {
                                         for(DataSnapshot snap : snapshot.getChildren())
-                                        {
-                                            chatKey = snap.getKey();
-                                            reference.child(dbmodel.getUserId()).child(userId).child(chatKey).child("seenStatus").setValue("seen");
+                                        {   counter = 1;
+                                            receiverChatKey = snap.getKey();
+                                            reference.child(dbmodel.getUserId()).child(userId).child(receiverChatKey).child("seenStatus").setValue("seen");
+                                            Intent intent = new Intent(context, ChatRoom.class);
+                                            intent.putExtra("userId",dbmodel.getUserId());
+                                            intent.putExtra("photoUrl",dbmodel.getPhotoUrl());
+                                            intent.putExtra("fullName",dbmodel.getFullName());
+                                            intent.putExtra("dbPublicKey",Base64.getEncoder().encodeToString(dbPublicKey));
+                                            intent.putExtra("senderPublicKey",Base64.getEncoder().encodeToString(publicKey));
+                                            context.startActivity(intent);
                                         }
 
                                     }
@@ -203,16 +206,17 @@ public class userListAdapter extends RecyclerView.Adapter<userListAdapter.myView
 
                                 }
                             });
-                            counter = 1;
+
+                        }else{
+                            Intent intent = new Intent(context, ChatRoom.class);
+                            intent.putExtra("userId",dbmodel.getUserId());
+                            intent.putExtra("photoUrl",dbmodel.getPhotoUrl());
+                            intent.putExtra("fullName",dbmodel.getFullName());
+                            intent.putExtra("dbPublicKey",Base64.getEncoder().encodeToString(dbPublicKey));
+                            intent.putExtra("senderPublicKey",Base64.getEncoder().encodeToString(publicKey));
+                            context.startActivity(intent);
                         }
 
-                        Intent intent = new Intent(context, ChatRoom.class);
-                        intent.putExtra("userId",dbmodel.getUserId());
-                        intent.putExtra("photoUrl",dbmodel.getPhotoUrl());
-                        intent.putExtra("fullName",dbmodel.getFullName());
-                        intent.putExtra("dbPublicKey",Base64.getEncoder().encodeToString(dbPublicKey));
-                        intent.putExtra("senderPublicKey",Base64.getEncoder().encodeToString(publicKey));
-                        context.startActivity(intent);
                     }
                 });
 
